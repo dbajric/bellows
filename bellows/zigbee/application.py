@@ -43,17 +43,17 @@ class ControllerApplication(zigpy.application.ControllerApplication):
         yield from self._cfg(c.CONFIG_APPLICATION_ZDO_FLAGS, zdo)
         yield from self._cfg(c.CONFIG_TRUST_CENTER_ADDRESS_CACHE_SIZE, 2)
         yield from self._cfg(c.CONFIG_PACKET_BUFFER_COUNT, 0xff)
-        yield from self._cfg(c.CONFIG_TRANSIENT_KEY_TIMEOUT_S, 180, True)
+        yield from self._cfg(c.CONFIG_TRANSIENT_KEY_TIMEOUT_S, 300, True)
         yield from self._cfg(c.CONFIG_INDIRECT_TRANSMISSION_TIMEOUT, 7680)
         yield from self._cfg(c.CONFIG_END_DEVICE_POLL_TIMEOUT, 60)
         yield from self._cfg(c.CONFIG_END_DEVICE_POLL_TIMEOUT_SHIFT, 10)
         
         yield from self._cfg(c.CONFIG_KEY_TABLE_SIZE, 1)
         yield from self._cfg(c.CONFIG_APS_UNICAST_MESSAGE_COUNT, 24)
-        yield from self._cfg(c.CONFIG_ROUTE_TABLE_SIZE, 24)
         yield from self._cfg(c.CONFIG_ADDRESS_TABLE_SIZE, 24)
         yield from self._cfg(c.CONFIG_SOURCE_ROUTE_TABLE_SIZE, 24)
         yield from self._cfg(c.CONFIG_DISCOVERY_TABLE_SIZE, 24)
+        yield from self._cfg(c.CONFIG_MAX_END_DEVICE_CHILDREN, 32)
 
     @asyncio.coroutine
     def startup(self, auto_form=False):
@@ -152,6 +152,7 @@ class ControllerApplication(zigpy.application.ControllerApplication):
         yield from self._ezsp.removeDevice(dev.nwk, dev.ieee, dev.ieee)
 
     def ezsp_callback_handler(self, frame_name, args):
+        LOGGER.debug("Application ezsp_callback_handler: %s %s", frame_name, args)
         if frame_name == 'incomingMessageHandler':
             self._handle_frame(*args)
         elif frame_name == 'messageSentHandler':
@@ -166,6 +167,7 @@ class ControllerApplication(zigpy.application.ControllerApplication):
                 self.handle_join(args[0], args[1], args[4])
 
     def _handle_frame(self, message_type, aps_frame, lqi, rssi, sender, binding_index, address_index, message):
+        LOGGER.debug("Application handle frame: %s %s %s %s %s %s %s %s", message_type, aps_frame, lqi, rssi, sender, binding_index, address_index, message)
         try:
             self.get_device(nwk=sender).radio_details(lqi, rssi)
         except KeyError:
@@ -188,6 +190,7 @@ class ControllerApplication(zigpy.application.ControllerApplication):
             self.handle_message(False, sender, aps_frame.profileId, aps_frame.clusterId, aps_frame.sourceEndpoint, aps_frame.destinationEndpoint, tsn, command_id, args)
 
     def _handle_reply(self, sender, aps_frame, tsn, command_id, args):
+        LOGGER.debug("Application handle reply: %s %s %s %s %s", sender, aps_frame, tsn, command_id, args)
         try:
             send_fut, reply_fut = self._pending[tsn]
             if send_fut.done():
@@ -216,6 +219,7 @@ class ControllerApplication(zigpy.application.ControllerApplication):
             LOGGER.debug("Invalid state on future - probably duplicate response: %s", exc)
 
     def _handle_frame_sent(self, message_type, destination, aps_frame, message_tag, status, message):
+        LOGGER.debug("Application _handle_frame_sent: %s %s %s %s %s %s", message_type, destination, aps_frame, message_tag, status, message)
         try:
             send_fut, reply_fut = self._pending[message_tag]
             # Sometimes messageSendResult and a reply come out of order
@@ -231,6 +235,7 @@ class ControllerApplication(zigpy.application.ControllerApplication):
     @zigpy.util.retryable_request
     @asyncio.coroutine
     def request(self, nwk, profile, cluster, src_ep, dst_ep, sequence, data, expect_reply=True, timeout=10):
+        LOGGER.debug("Application request: %s %s %s %s %s %s %s", nwk, profile, cluster, src_ep, dst_ep, sequence, data)
         assert sequence not in self._pending
         send_fut = asyncio.Future()
         reply_fut = None
