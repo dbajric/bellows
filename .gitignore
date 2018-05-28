@@ -68,3 +68,5 @@ ENV/
 
 # Editor temp files
 .*.swp
+/.project
+/.pydevproject
