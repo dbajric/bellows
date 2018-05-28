@@ -33,20 +33,24 @@ class ControllerApplication(zigpy.application.ControllerApplication):
         await self._cfg(c.CONFIG_STACK_PROFILE, 2)
         await self._cfg(c.CONFIG_SECURITY_LEVEL, 5)
         await self._cfg(c.CONFIG_SUPPORTED_NETWORKS, 1)
+        await self._cfg(c.CONFIG_PACKET_BUFFER_COUNT, 0xff)
         zdo = (
             t.EmberZdoConfigurationFlags.APP_RECEIVES_SUPPORTED_ZDO_REQUESTS |
             t.EmberZdoConfigurationFlags.APP_HANDLES_UNSUPPORTED_ZDO_REQUESTS
         )
         await self._cfg(c.CONFIG_APPLICATION_ZDO_FLAGS, zdo)
         await self._cfg(c.CONFIG_TRUST_CENTER_ADDRESS_CACHE_SIZE, 2)
-        await self._cfg(c.CONFIG_ADDRESS_TABLE_SIZE, 16)
-        await self._cfg(c.CONFIG_SOURCE_ROUTE_TABLE_SIZE, 8)
+        await self._cfg(c.CONFIG_ADDRESS_TABLE_SIZE, 24)
+        await self._cfg(c.CONFIG_SOURCE_ROUTE_TABLE_SIZE, 24)
+        await self._cfg(c.CONFIG_DISCOVERY_TABLE_SIZE, 24)
+        await self._cfg(c.CONFIG_APS_UNICAST_MESSAGE_COUNT, 24)
+        await self._cfg(c.CONFIG_ROUTE_TABLE_SIZE, 24)
         await self._cfg(c.CONFIG_MAX_END_DEVICE_CHILDREN, 32)
-        await self._cfg(c.CONFIG_PACKET_BUFFER_COUNT, 0xff)
         await self._cfg(c.CONFIG_KEY_TABLE_SIZE, 1)
         await self._cfg(c.CONFIG_TRANSIENT_KEY_TIMEOUT_S, 180, True)
+        await self._cfg(c.CONFIG_INDIRECT_TRANSMISSION_TIMEOUT, 7680)
         await self._cfg(c.CONFIG_END_DEVICE_POLL_TIMEOUT, 60)
-        await self._cfg(c.CONFIG_END_DEVICE_POLL_TIMEOUT_SHIFT, 6)
+        await self._cfg(c.CONFIG_END_DEVICE_POLL_TIMEOUT_SHIFT, 10)
 
     async def startup(self, auto_form=False):
         """Perform a complete application startup"""
@@ -224,7 +228,8 @@ class ControllerApplication(zigpy.application.ControllerApplication):
         aps_frame.destinationEndpoint = t.uint8_t(dst_ep)
         aps_frame.options = t.EmberApsOption(
             t.EmberApsOption.APS_OPTION_RETRY |
-            t.EmberApsOption.APS_OPTION_ENABLE_ROUTE_DISCOVERY
+            t.EmberApsOption.APS_OPTION_ENABLE_ROUTE_DISCOVERY |
+            t.EmberApsOption.APS_OPTION_ENABLE_ADDRESS_DISCOVERY
         )
         aps_frame.groupId = t.uint16_t(0)
         aps_frame.sequence = t.uint8_t(sequence)
